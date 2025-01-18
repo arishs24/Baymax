@@ -1,15 +1,18 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { auth } from "../firebase"; // Firebase Authentication
+import { useAuth0 } from "@auth0/auth0-react";
 
-function ProtectedRoute({ children }) {
-  const user = auth.currentUser;
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuth0();
 
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
+  // Show loading while checking authentication
+  if (isLoading) return <div>Loading...</div>;
 
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) return <Navigate to="/login" />;
+
+  // Render protected content if authenticated
   return children;
-}
+};
 
 export default ProtectedRoute;
