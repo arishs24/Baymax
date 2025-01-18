@@ -1,53 +1,60 @@
-import React, { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase";
+import React from "react";
+import { useAuth0 } from "@auth0/auth0-react";
+import { Container, Button, Typography, Card, CardContent } from "@mui/material";
 
 function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const { loginWithRedirect, isLoading } = useAuth0();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError("");
-
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      alert("Login successful!");
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+  if (isLoading) {
+    return <Typography align="center">Loading...</Typography>;
+  }
 
   return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h2>Login</h2>
-      <form onSubmit={handleLogin}>
-        <div>
-          <label>Email:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ marginLeft: "10px" }}
-          />
-        </div>
-        <div style={{ marginTop: "10px" }}>
-          <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ marginLeft: "10px" }}
-          />
-        </div>
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        <button type="submit" style={{ marginTop: "20px", padding: "10px 20px" }}>
-          Login
-        </button>
-      </form>
+    <div
+      style={{
+        backgroundImage: `url('/baymax.jpg')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "20px",
+      }}
+    >
+      <Container maxWidth="sm" style={{ display: "flex", flexDirection: "column" }}>
+        <Card
+          style={{
+            padding: "20px",
+            borderRadius: "20px",
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
+          }}
+        >
+          <CardContent>
+            <Typography
+              variant="h4"
+              align="center"
+              style={{ marginBottom: "20px", color: "#FF4B4B", fontWeight: "bold" }}
+            >
+              Welcome Back!
+            </Typography>
+            <Button
+              onClick={() => loginWithRedirect()}
+              variant="contained"
+              fullWidth
+              style={{
+                backgroundColor: "#4B4BFF",
+                color: "#fff",
+                padding: "10px",
+                fontSize: "1rem",
+                borderRadius: "10px",
+              }}
+            >
+              Log In
+            </Button>
+          </CardContent>
+        </Card>
+      </Container>
     </div>
   );
 }

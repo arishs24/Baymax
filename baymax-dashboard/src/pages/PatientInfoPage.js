@@ -1,8 +1,30 @@
 import React, { useState } from "react";
-import { auth, db } from "../firebase"; // Import auth and db from firebase.js
-import { doc, setDoc } from "firebase/firestore"; // Import Firestore methods
+import { db } from "../firebase";
+import { doc, setDoc } from "firebase/firestore";
+import { useAuth0 } from "@auth0/auth0-react";
+
+import {
+  Box,
+  Container,
+  TextField,
+  Button,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  Alert,
+  Chip,
+  Stack,
+} from "@mui/material";
+
+// Icons
+import MedicationIcon from "@mui/icons-material/Medication";
+import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 function PatientInfoPage() {
+  const { user } = useAuth0();
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [prescription, setPrescription] = useState("");
@@ -13,27 +35,22 @@ function PatientInfoPage() {
 
   const handleSaveInfo = async () => {
     try {
-      const user = auth.currentUser; // Get the logged-in user
-      if (!user) {
-        setMessage("User not logged in!");
-        return;
-      }
+      if (!user) return;
+      const userId = user.sub; // Auth0 user ID
+      console.log("Saving data for user ID:", userId);
 
-      // Save data in a Firestore document for this user's UID
-      await setDoc(doc(db, "patients", user.uid), {
+      await setDoc(doc(db, "patients", userId), {
         name,
         age,
         prescriptions,
         issues,
       });
 
+      console.log("Data saved successfully!");
       setMessage("Patient information saved successfully!");
-      setName("");
-      setAge("");
-      setPrescriptions([]);
-      setIssues([]);
-    } catch (error) {
-      setMessage("Error saving information: " + error.message);
+    } catch (err) {
+      console.error("Error saving data:", err.message);
+      setMessage("Error saving information: " + err.message);
     }
   };
 
@@ -51,58 +68,238 @@ function PatientInfoPage() {
     }
   };
 
+  const handleRemovePrescription = (indexToRemove) => {
+    setPrescriptions((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const handleRemoveIssue = (indexToRemove) => {
+    setIssues((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
   return (
-    <div className="patient-info-container">
-      <h1>Manage Patient Information</h1>
-      <div className="form-group">
-        <label>Name:</label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-      </div>
-      <div className="form-group">
-        <label>Age:</label>
-        <input
-          type="number"
-          value={age}
-          onChange={(e) => setAge(e.target.value)}
-        />
-      </div>
-      <div className="form-group">
-        <label>Add Prescription:</label>
-        <input
-          type="text"
-          value={prescription}
-          onChange={(e) => setPrescription(e.target.value)}
-        />
-        <button onClick={handleAddPrescription}>Add</button>
-      </div>
-      <ul>
-        {prescriptions.map((prescription, index) => (
-          <li key={index}>{prescription}</li>
-        ))}
-      </ul>
-      <div className="form-group">
-        <label>Add Health Issue:</label>
-        <input
-          type="text"
-          value={issue}
-          onChange={(e) => setIssue(e.target.value)}
-        />
-        <button onClick={handleAddIssue}>Add</button>
-      </div>
-      <ul>
-        {issues.map((issue, index) => (
-          <li key={index}>{issue}</li>
-        ))}
-      </ul>
-      <button onClick={handleSaveInfo} className="save-button">
-        Save Patient Info
-      </button>
-      {message && <p>{message}</p>}
-    </div>
+    <Box
+      // Full-page background
+      sx={{
+        minHeight: "100vh",
+        // This points to baymax.jpg in your public folder
+        backgroundImage: "url('/baymax.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        // Add an optional overlay color if desired:
+        // backgroundColor: "rgba(255, 255, 255, 0.7)",
+        // backgroundBlendMode: "lighten",
+        py: 8, // Space above and below
+      }}
+    >
+      {/* Center your content in a Container */}
+      <Container maxWidth="md">
+        <Typography
+          variant="h3"
+          align="center"
+          sx={{
+            mb: 3,
+            color: "#FF4B4B",
+            fontWeight: "bold",
+            fontFamily: "'Fredoka', sans-serif",
+          }}
+        >
+          Baymax Patient Info
+        </Typography>
+
+        <Card
+          sx={{
+            p: 3,
+            borderRadius: 3,
+            backgroundColor: "#ffffff",
+            boxShadow: "0px 5px 15px rgba(0, 0, 0, 0.1)",
+          }}
+        >
+          <CardContent>
+            <Grid container spacing={3}>
+              {/* Name Field */}
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Name"
+                  fullWidth
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  InputLabelProps={{ sx: { color: "#FF4B4B" } }}
+                />
+              </Grid>
+
+              {/* Age Field */}
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Age"
+                  fullWidth
+                  type="number"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  InputLabelProps={{ sx: { color: "#FF4B4B" } }}
+                />
+              </Grid>
+
+              {/* Prescriptions Section */}
+              <Grid item xs={12}>
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{ color: "#4B4BFF", fontWeight: "bold" }}
+                >
+                  Prescriptions
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={8}>
+                    <TextField
+                      label="Add Prescription"
+                      fullWidth
+                      value={prescription}
+                      onChange={(e) => setPrescription(e.target.value)}
+                    />
+                  </Grid>
+                  <Grid item xs={4}>
+                    <Button
+                      variant="contained"
+                      sx={{
+                        backgroundColor: "#FF4B4B",
+                        color: "#ffffff",
+                        borderRadius: 2,
+                        fontWeight: "bold",
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 1,
+                      }}
+                      onClick={handleAddPrescription}
+                      fullWidth
+                    >
+                      <AddIcon fontSize="small" />
+                      Add
+                    </Button>
+                  </Grid>
+                </Grid>
+
+                {/* Display prescriptions as Chips */}
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ mt: 2, flexWrap: "wrap" }}
+                >
+                  {prescriptions.map((item, index) => (
+                    <Chip
+                      key={index}
+                      label={item}
+                      icon={<MedicationIcon />}
+                      onDelete={() => handleRemovePrescription(index)}
+                      deleteIcon={<DeleteIcon />}
+                      color="primary"
+                      variant="outlined"
+                      sx={{ mb: 1 }}
+                    />
+                  ))}
+                </Stack>
+              </Grid>
+
+              {/* Health Issues Section */}
+              <Grid item xs={12}>
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{ color: "#4B4BFF", fontWeight: "bold" }}
+                >
+                  Health Issues
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={8}>
+                    <TextField
+                      label="Add Health Issue"
+                      fullWidth
+                      value={issue}
+                      onChange={(e) => setIssue(e.target.value)}
+                    />
+                  </Grid>
+                  <Grid item xs={4}>
+                    <Button
+                      variant="contained"
+                      sx={{
+                        backgroundColor: "#FF4B4B",
+                        color: "#ffffff",
+                        borderRadius: 2,
+                        fontWeight: "bold",
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 1,
+                      }}
+                      onClick={handleAddIssue}
+                      fullWidth
+                    >
+                      <AddIcon fontSize="small" />
+                      Add
+                    </Button>
+                  </Grid>
+                </Grid>
+
+                {/* Display issues as Chips */}
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ mt: 2, flexWrap: "wrap" }}
+                >
+                  {issues.map((item, index) => (
+                    <Chip
+                      key={index}
+                      label={item}
+                      icon={<MedicalServicesIcon />}
+                      onDelete={() => handleRemoveIssue(index)}
+                      deleteIcon={<DeleteIcon />}
+                      color="secondary"
+                      variant="outlined"
+                      sx={{ mb: 1 }}
+                    />
+                  ))}
+                </Stack>
+              </Grid>
+
+              {/* Save Button */}
+              <Grid item xs={12}>
+                <Button
+                  variant="contained"
+                  sx={{
+                    backgroundColor: "#4B4BFF",
+                    color: "#ffffff",
+                    borderRadius: 3,
+                    fontSize: "1.2rem",
+                    fontWeight: "bold",
+                    py: 1.5,
+                  }}
+                  fullWidth
+                  onClick={handleSaveInfo}
+                >
+                  Save Patient Info
+                </Button>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Success/Error Alert */}
+        {message && (
+          <Alert
+            severity={message.includes("Error") ? "error" : "success"}
+            sx={{
+              mt: 3,
+              fontWeight: "bold",
+            }}
+          >
+            {message}
+          </Alert>
+        )}
+      </Container>
+    </Box>
   );
 }
 

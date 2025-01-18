@@ -1,0 +1,2 @@
+<tizen:privilege name="http://tizen.org/privilege/healthinfo" />
+<tizen:privilege name="http://tizen.org/privilege/internet" />

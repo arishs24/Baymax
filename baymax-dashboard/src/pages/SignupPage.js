@@ -1,80 +1,61 @@
-import React, { useState } from "react";
-import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth } from "../firebase";
+import React from "react";
+import { useAuth0 } from "@auth0/auth0-react";
+import { Container, Button, Typography, Card, CardContent } from "@mui/material";
 
 function SignupPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const { loginWithRedirect, isLoading } = useAuth0();
 
-  const handleSignup = async (e) => {
-    e.preventDefault();
-    setError("");
-
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      alert("Signup successful!");
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const handleGoogleSignup = async () => {
-    setError("");
-
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      alert("Google sign-in successful!");
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+  if (isLoading) {
+    return <Typography align="center">Loading...</Typography>;
+  }
 
   return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h2>Signup</h2>
-      <form onSubmit={handleSignup}>
-        <div>
-          <label>Email:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ marginLeft: "10px" }}
-          />
-        </div>
-        <div style={{ marginTop: "10px" }}>
-          <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ marginLeft: "10px" }}
-          />
-        </div>
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        <button type="submit" style={{ marginTop: "20px", padding: "10px 20px" }}>
-          Signup
-        </button>
-      </form>
-      <p style={{ marginTop: "20px" }}>Or</p>
-      <button
-        onClick={handleGoogleSignup}
-        style={{
-          marginTop: "10px",
-          padding: "10px 20px",
-          backgroundColor: "#4285F4",
-          color: "white",
-          border: "none",
-          borderRadius: "5px",
-          cursor: "pointer",
-        }}
-      >
-        Signup with Google
-      </button>
+    <div
+      style={{
+        backgroundImage: `url('/baymax.jpg')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "20px",
+      }}
+    >
+      <Container maxWidth="sm" style={{ display: "flex", flexDirection: "column" }}>
+        <Card
+          style={{
+            padding: "20px",
+            borderRadius: "20px",
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
+          }}
+        >
+          <CardContent>
+            <Typography
+              variant="h4"
+              align="center"
+              style={{ marginBottom: "20px", color: "#FF4B4B", fontWeight: "bold" }}
+            >
+              Welcome to Baymax
+            </Typography>
+            <Button
+              onClick={() => loginWithRedirect({ screen_hint: "signup" })}
+              variant="contained"
+              fullWidth
+              style={{
+                backgroundColor: "#4B4BFF",
+                color: "#fff",
+                padding: "10px",
+                fontSize: "1rem",
+                borderRadius: "10px",
+                marginBottom: "15px",
+              }}
+            >
+              Sign Up
+            </Button>
+          </CardContent>
+        </Card>
+      </Container>
     </div>
   );
 }
