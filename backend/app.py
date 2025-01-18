@@ -2,10 +2,62 @@ import cohere
 import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
+import cv2
 
 load_dotenv()
 
 app = Flask(__name__)
+
+class EmotionDetector:
+    def __init__(self):
+        # Initialize webcam
+        self.cap = cv2.VideoCapture(0)
+
+        # Load Haar Cascades
+        self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+        self.smile_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_smile.xml")
+        self.eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_eye.xml")
+
+    def detect_emotion(self):
+        ret, frame = self.cap.read()
+        if not ret:
+            return "Neutral"  # Default to "Neutral" if no frame is captured
+
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        faces = self.face_cascade.detectMultiScale(gray_frame, scaleFactor=1.1, minNeighbors=5, minSize=(50, 50))
+
+        for (x, y, w, h) in faces:
+            face_roi = gray_frame[y:y+h, x:x+w]
+
+            smiles = self.smile_cascade.detectMultiScale(
+                face_roi, scaleFactor=1.5, minNeighbors=15, minSize=(20, 20)
+            )
+
+            eyes = self.eye_cascade.detectMultiScale(
+                face_roi, scaleFactor=1.1, minNeighbors=10, minSize=(15, 15)
+            )
+
+            if len(smiles) > 0:
+                return "Happy"
+            elif len(eyes) > 0:
+                stress_detected = False
+                for (ex, ey, ew, eh) in eyes:
+                    eye_height = eh / ew
+                    if eye_height > 0.5:
+                        stress_detected = True
+                        break
+
+                if stress_detected:
+                    return "Stressed"
+                else:
+                    return "Sad"
+
+        return "Sad"
+
+    def release(self):
+        self.cap.release()
+        cv2.destroyAllWindows()
 
 class EmergencyAssistant:
     def __init__(self):
@@ -61,53 +113,66 @@ REMEMBER: MAKE SURE TO KEEP THE ANSWER TO 1-3 SENTENCES MAXIMUM"""
         }
         self.message_history = []
 
-    def get_response(self, user_message: str, audience: str) -> dict:
+    def get_response(self, user_message: str, audience: str, emotion: str) -> dict:
         try:
+            if audience not in self.prompts:
+                return {"response": "Invalid audience type."}
+
+            # Add emotion to the system prompt
+            system_prompt = (
+                f"{self.prompts[audience]} \nThe user appears to be {emotion}. Adjust your response accordingly."
+            )
+
             # Add the user's message to the message history
             self.message_history.append(user_message)
-            # Keep the last 4 messages
             if len(self.message_history) > 4:
                 self.message_history.pop(0)
 
-            # Combine the messages into a single conversation
             full_message = "\n".join(self.message_history)
 
-            print(f"Sending request to Cohere for audience: {audience}...")
             response = self.co.chat(
                 model="command-r-plus-08-2024",
                 message=full_message,
-                preamble=self.prompts[audience],
+                preamble=system_prompt,
                 temperature=0.9,
                 max_tokens=150,
             )
-            print("Response received!")
+
             return {"response": response.text}
 
         except Exception as e:
-            print(f"Error occurred: {str(e)}")
             return {"response": f"An error occurred: {str(e)}"}
 
-# Create an instance of EmergencyAssistant
+# Initialize EmotionDetector and EmergencyAssistant
+emotion_detector = EmotionDetector()
 assistant = EmergencyAssistant()
 
 @app.route('/api/app', methods=['POST'])
 def chat():
     try:
-        # Get user input and audience from the request
-        data = request.json
-        user_message = data.get('message', '')
-        audience = data.get('audience', 'adult')
-        
+        user_message = request.json.get('message', '')
+        audience = request.json.get('audience', '').lower()
+
         if not user_message:
             return jsonify({"error": "No message provided"}), 400
-        if audience not in assistant.prompts:
-            return jsonify({"error": "Invalid audience type"}), 400
+        if not audience:
+            return jsonify({"error": "No audience type provided"}), 400
 
-        # Get the assistant's response
-        result = assistant.get_response(user_message, audience)
+        emotion = emotion_detector.detect_emotion()
+
+        result = assistant.get_response(user_message, audience, emotion)
         return jsonify(result), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/shutdown', methods=['POST'])
+def shutdown():
+    emotion_detector.release()
+    return jsonify({"message": "Resources released and application shutting down."}), 200
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    try:
+        app.run(debug=True)
+    except KeyboardInterrupt:
+        emotion_detector.release()
