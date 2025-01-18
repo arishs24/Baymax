@@ -29,8 +29,7 @@ def detect_emotion(face):
     """Detect emotion from a given face."""
     processed_face = preprocess_face(face)
     predictions = model.predict(processed_face)
-    emotion_index = np.argmax(predictions)
-    return emotion_labels[emotion_index], predictions[0][emotion_index]
+    return predictions[0]  # Return all emotion predictions for debugging
 
 print("Starting Emotion Detection...")
 
@@ -51,11 +50,20 @@ while True:
 
     for (x, y, w, h) in faces:
         face = frame[y:y+h, x:x+w]
+        
         try:
-            emotion, confidence = detect_emotion(face)
+            # Get emotion predictions
+            emotion_probs = detect_emotion(face)
+
+            # Get the index with the highest confidence score
+            emotion_index = np.argmax(emotion_probs)
+            emotion = emotion_labels[emotion_index]
+            confidence = emotion_probs[emotion_index]
 
             # Display the detected emotion and confidence
             label = f"{emotion} ({confidence*100:.2f}%)"
+            print(f"Confidence for all emotions: {list(zip(emotion_labels, emotion_probs))}")  # Print all emotions for debugging
+
             cv2.putText(frame, label, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
             cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
 
