@@ -1,10 +1,4 @@
 import cv2
-import numpy as np
-from keras.models import load_model
-
-# Load pre-trained emotion detection model
-model = load_model("emotion_model.h5")  # Make sure you have a trained model
-emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
 
 # Initialize the webcam
 cap = cv2.VideoCapture(0)
@@ -14,22 +8,10 @@ if not cap.isOpened():
     print("Error: Could not access the webcam.")
     exit()
 
-# Load Haar Cascade for face detection
+# Load Haar Cascades for face, smile, and eye detection
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-
-def preprocess_face(face):
-    """Preprocess the face image for the model."""
-    face_gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)  # Convert to grayscale
-    face_resized = cv2.resize(face_gray, (48, 48))  # Resize to 48x48
-    face_normalized = face_resized / 255.0  # Normalize pixel values
-    face_reshaped = np.reshape(face_normalized, (1, 48, 48, 1))  # Reshape for the model
-    return face_reshaped
-
-def detect_emotion(face):
-    """Detect emotion from a given face."""
-    processed_face = preprocess_face(face)
-    predictions = model.predict(processed_face)
-    return predictions[0]  # Return all emotion predictions for debugging
+smile_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_smile.xml")
+eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_eye.xml")
 
 print("Starting Emotion Detection...")
 
@@ -39,36 +21,60 @@ while True:
         print("Error: Failed to capture image.")
         break
 
-    # Detect faces in the frame
+    # Convert the frame to grayscale for Haar Cascade
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray_frame, scaleFactor=1.1, minNeighbors=5)
 
-    if len(faces) > 0:
-        print(f"Faces detected: {len(faces)}")
-    else:
-        print("No faces detected.")
+    # Detect faces in the frame
+    faces = face_cascade.detectMultiScale(gray_frame, scaleFactor=1.1, minNeighbors=5, minSize=(50, 50))
 
     for (x, y, w, h) in faces:
-        face = frame[y:y+h, x:x+w]
-        
-        try:
-            # Get emotion predictions
-            emotion_probs = detect_emotion(face)
+        # Extract the face region of interest (ROI)
+        face_roi = gray_frame[y:y+h, x:x+w]
+        color_face_roi = frame[y:y+h, x:x+w]
 
-            # Get the index with the highest confidence score
-            emotion_index = np.argmax(emotion_probs)
-            emotion = emotion_labels[emotion_index]
-            confidence = emotion_probs[emotion_index]
+        # Detect smiles in the face ROI
+        smiles = smile_cascade.detectMultiScale(
+            face_roi,
+            scaleFactor=1.5,
+            minNeighbors=15,
+            minSize=(20, 20)
+        )
 
-            # Display the detected emotion and confidence
-            label = f"{emotion} ({confidence*100:.2f}%)"
-            print(f"Confidence for all emotions: {list(zip(emotion_labels, emotion_probs))}")  # Print all emotions for debugging
+        # Detect eyes in the face ROI
+        eyes = eye_cascade.detectMultiScale(
+            face_roi,
+            scaleFactor=1.1,
+            minNeighbors=10,
+            minSize=(15, 15)
+        )
 
-            cv2.putText(frame, label, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+        # Determine emotion based on smile and eye detection
+        if len(smiles) > 0:
+            emotion = "Happy"
+            color = (0, 255, 0)  # Green for happy
+        elif len(eyes) > 0:
+            # Check for stress based on eyes (e.g., tightly shut or squinting eyes)
+            stress_detected = False
+            for (ex, ey, ew, eh) in eyes:
+                eye_height = eh / ew
+                if eye_height > 0.5:  # Tightly shut or squinting eyes are taller relative to width
+                    stress_detected = True
+                    break
 
-        except Exception as e:
-            print(f"Error during emotion detection: {e}")
+            if stress_detected:
+                emotion = "Stressed"
+                color = (0, 255, 255)  # Yellow for stressed
+            else:
+                emotion = "Sad"
+                color = (0, 0, 255)  # Red for sad
+        else:
+            emotion = "Sad"
+            color = (0, 0, 255)  # Red for sad
+
+        # Display the detected emotion
+        label = f"{emotion}"
+        cv2.putText(frame, label, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+        cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
 
     # Show the frame with emotion labels
     cv2.imshow("Emotion Detection", frame)
