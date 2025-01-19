@@ -11,18 +11,35 @@ import {
   IconButton,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-import { useAuth0 } from "@auth0/auth0-react"; // Import Auth0 hooks
+import { useAuth0 } from "@auth0/auth0-react";
 
 function Navbar({ onModeChange }) {
-  const { isAuthenticated, loginWithRedirect, logout } = useAuth0(); // Auth0 hooks
-  const [mode, setMode] = useState("adult"); // Default mode is 'Adult Mode'
+  const { isAuthenticated, loginWithRedirect, logout } = useAuth0();
+  const [mode, setMode] = useState("adult"); // Default mode
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleModeChange = (event) => {
+  const handleModeChange = async (event) => {
     const selectedMode = event.target.value;
     setMode(selectedMode);
+    
+    // If you still need to notify parent with the selected mode
     if (onModeChange) {
-      onModeChange(selectedMode); // Notify the parent component (e.g., App.js) about the mode change
+      onModeChange(selectedMode);
+    }
+    
+    // ---- Make a POST request to your backend to store the selected mode ----
+    try {
+      const response = await fetch("http://localhost:5000/api/set_mode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ audience: selectedMode }),
+      });
+      const data = await response.json();
+      console.log("Mode updated in backend:", data);
+    } catch (error) {
+      console.error("Error updating mode in backend:", error);
     }
   };
 
@@ -117,9 +134,9 @@ function Navbar({ onModeChange }) {
               },
             }}
           >
-            <MenuItem value="child">Child Mode</MenuItem>
+            <MenuItem value="baby">Baby Mode</MenuItem>
             <MenuItem value="adult">Adult Mode</MenuItem>
-            <MenuItem value="doctor">Doctor Mode</MenuItem>
+            <MenuItem value="elderly">Elderly Mode</MenuItem>
           </Select>
 
           {/* Conditional Login/Logout Buttons */}
@@ -185,7 +202,7 @@ function Navbar({ onModeChange }) {
         </IconButton>
       </Toolbar>
 
-      {/* Dropdown for Mobile */}
+      {/* Mobile Dropdown */}
       {menuOpen && (
         <Box
           sx={{
@@ -218,6 +235,8 @@ function Navbar({ onModeChange }) {
           >
             Patient Info
           </Button>
+
+          {/* Mode Selector in mobile dropdown */}
           <Select
             value={mode}
             onChange={handleModeChange}
@@ -238,9 +257,9 @@ function Navbar({ onModeChange }) {
               },
             }}
           >
-            <MenuItem value="child">Child Mode</MenuItem>
+            <MenuItem value="baby">Baby Mode</MenuItem>
             <MenuItem value="adult">Adult Mode</MenuItem>
-            <MenuItem value="doctor">Doctor Mode</MenuItem>
+            <MenuItem value="elderly">Elderly Mode</MenuItem>
           </Select>
           {isAuthenticated ? (
             <Button
