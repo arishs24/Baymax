@@ -2,6 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { contractAddress, contractABI } from "./contractConfig";
+import { BrowserProvider, Contract } from "ethers";
+
+
+
 import {
   Container,
   Typography,
@@ -30,6 +35,29 @@ import "../App.css";
 
 // Register Chart.js components
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend);
+
+const connectToContract = async () => {
+  if (window.ethereum) {
+    try {
+      // Request account access
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+
+      // Create a provider and signer
+      const provider = new BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+
+      // Connect to the contract
+      const contract = new Contract(contractAddress, contractABI, signer);
+      console.log("Connected to contract:", contract);
+
+      return contract; // Return the contract instance for interactions
+    } catch (error) {
+      console.error("Error connecting to contract:", error);
+    }
+  } else {
+    console.error("Ethereum wallet not found. Install MetaMask.");
+  }
+};
 
 const AnimatedCard = styled(motion.div)(({ theme }) => ({
   borderRadius: "20px",

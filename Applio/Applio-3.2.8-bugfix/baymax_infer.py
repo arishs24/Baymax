@@ -8,6 +8,13 @@ import speech_recognition as sr
 import cv2
 from dotenv import load_dotenv
 
+from firebase_integration import get_patient_data  # import the helper
+
+USER_ID = "auth0|abc12345"
+
+patient_data = get_patient_data(USER_ID)
+
+
 # Load environment variables
 load_dotenv()
 
@@ -71,10 +78,17 @@ class EmotionDetector:
 
 
 # Baymax Response Generator
-def baymax_response_generator(prompt, emotion="Neutral"):
+def baymax_response_generator(prompt, emotion="Neutral", patient_data=None):
     """
     Generates Baymax-like responses with simple, pure sentences (1-3 max), adjusted for emotion.
     """
+
+       
+    if patient_data is None:
+        patient_data = {}
+
+    # Convert patient_data (dict) into a friendly string
+    patient_info_string = f"Patient Info:\n{patient_data}\n"
     try:
         # Generate a response in Baymax's tone and style
         response = openai.ChatCompletion.create(
@@ -86,6 +100,7 @@ def baymax_response_generator(prompt, emotion="Neutral"):
                         f"You are Baymax, a personal healthcare companion. "
                         f"Respond in a calm, empathetic tone, adjusted to match the emotion '{emotion}'. "
                         f"Limit responses to 1-3 concise sentences. Prioritize simplicity, kindness, and clarity."
+                        f"Remember that the Patient's data is as follows:\n{patient_info_string}"
                     )
                 },
                 {"role": "user", "content": prompt}
@@ -214,7 +229,7 @@ if __name__ == "__main__":
                                 play_baymax_response("I did not understand. Are you satisfied with my care?")
                     else:
                         emotion = emotion_detector.detect_emotion()
-                        baymax_reply = baymax_response_generator(user_input, emotion)
+                        baymax_reply = baymax_response_generator(user_input, emotion, patient_data)
                         play_baymax_response(baymax_reply)
 
                 except sr.UnknownValueError:
