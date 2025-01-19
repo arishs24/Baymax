@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/baymax/static/css/main.b1d8d12d.css",
+    "main.js": "/baymax/static/js/main.e6a80e68.js",
+    "index.html": "/baymax/index.html",
+    "main.b1d8d12d.css.map": "/baymax/static/css/main.b1d8d12d.css.map",
+    "main.e6a80e68.js.map": "/baymax/static/js/main.e6a80e68.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.b1d8d12d.css",
+    "static/js/main.e6a80e68.js"
+  ]
+}
